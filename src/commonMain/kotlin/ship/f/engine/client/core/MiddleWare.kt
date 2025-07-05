@@ -4,7 +4,7 @@ package ship.f.engine.client.core
 abstract class MiddleWare<E : Event> {
 
     private var isInitialized = false
-    inline operator fun invoke(event: Event): E? = process(event as E)
+    operator fun invoke(event: Event): E? = process(event as E)
 
     private fun init() {
 
