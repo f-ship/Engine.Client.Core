@@ -27,8 +27,8 @@ abstract class Slice<S : State, SP : SubPub<S>>(
     }
 
     @Composable
-    fun show() {
-        EntryPoint(subPub.state)
+    fun Show() {
+        EntryPointWrapper(subPub.state)
     }
 
     @Composable

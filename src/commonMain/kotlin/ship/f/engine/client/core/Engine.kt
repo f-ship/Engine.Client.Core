@@ -10,8 +10,7 @@ object Engine {
         event: KClass<E>,
         scope: ScopeTo
     ): E? {
-        val a =
-            config.eventMiddleWareConfig[event]!! // All events should be configured before engine is ran
+        val a = config.eventMiddleWareConfig[event]!! // All events should be configured before engine is ran
         val b = a.eventConfigs[scope]
         val c = b?.event
         return c as? E
