@@ -65,7 +65,7 @@ data class MockEvent(
     @CompositeScope(IdCompositeScope::class) @SingleScope(IdSingleScope::class) val id: String,
 
     @CompositeScope(IdCompositeScope::class) @SingleScope(IdSingleScope::class) val id2: String,
-) : Event() {
+) : ScopedEvent() {
     override fun getScopes(): List<ScopeTo> = listOf(
         CompositeScopeTo(IdCompositeScope::class, id + id2),
         SingleScopeTo(IdSingleScope::class, id),

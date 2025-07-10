@@ -4,4 +4,10 @@ abstract class Dependency : SubPub<State.NoState>() { // While a dependency inhe
     open fun init(scope: ScopeTo){
 
     }
+
+    override fun initState(): State.NoState = State.NoState()
+
+    override suspend fun onEvent() {
+
+    }
 }

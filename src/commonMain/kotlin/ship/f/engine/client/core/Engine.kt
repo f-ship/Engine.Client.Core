@@ -5,8 +5,8 @@ import kotlin.reflect.KClass
 @Suppress("UNCHECKED_CAST") //Should probably create extensions for safe map access
 object Engine {
     private var config = Config()
-
-    fun <E : Event> getEvent(
+    var hasBeenInit = false
+    fun <E : ScopedEvent> getEvent(
         event: KClass<E>,
         scope: ScopeTo
     ): E? {
@@ -16,8 +16,17 @@ object Engine {
         return c as? E
     }
 
-    fun init(config: Config) {
+    suspend fun init(config: Config, initialEvent: E? = null) {
         this.config = config
+        config.subPubConfig.values
+            .filter { it.isStartUp }
+            .forEach {
+                it.subPubs.values.forEach {
+                    sp -> sp.tryInit()
+                }
+            }
+        initialEvent?.let { publish(it, "Initial Event") }
+        hasBeenInit = true
     }
 
     suspend fun publish(event: E, reason: String) { // Do something with reason
@@ -33,6 +42,7 @@ object Engine {
             eventConfigs[scope] =
                 eventConfigs[scope]?.copy(event = computedEvent) ?: EventConfig(computedEvent, setOf())
             eventConfigs[scope]!!.listeners.forEach {
+                it.lastEvent = computedEvent
                 it.onEvent()
             }
         }
@@ -52,25 +62,39 @@ object Engine {
 
     fun <SP : SubPub<out State>> getSubPub(subPubClass: KClass<out SP>, scope: ScopeTo): SP {
         val a = config.subPubConfig[subPubClass]!!
-        val b = a.subPubs[scope] ?: a.build().apply { tryInit() }
+        val b = (a.subPubs[scope] ?: a.build()).apply { tryInit() }
         addScopes(b, scope, b.events.toList())
         return b as SP
     }
 
     fun <D : Dependency> getDependency(dependency: KClass<out D>, scope: ScopeTo): D {
         val a = config.dependencyConfig[dependency]!!
-        val b = a.dependencies[scope] ?: a.build(scope).apply { init(scope) }
+        val b = (a.dependencies[scope] ?: a.build(scope)).apply { init(scope) }
         return b as D
+    }
+
+    fun <D : Dependency> addDependency( // TODO this is not comprehensive yet, however scoping will be implemented fully as needed.
+        dependency: KClass<out D>,
+        dependencyInstance: D,
+    ) {
+        config = config.copy(
+            dependencyConfig = config.dependencyConfig + mapOf(
+                dependency to DependencyConfig(
+                    build = { dependencyInstance },
+                )
+            )
+        )
     }
 }
 
 data class Config(
     val subPubConfig: Map<SPClass, SubPubConfig> = mapOf(),
     val eventMiddleWareConfig: Map<EClass, EventMiddleWareConfig> = mapOf(),
-    val dependencyConfig: Map<DClass, DependencyConfig> = mapOf(),
+    val dependencyConfig: Map<DClass, DependencyConfig> = mapOf(), // TODO Should have a way to make arbitrary independence that don't implement Dependency
 )
 
 data class SubPubConfig(
+    val isStartUp: Boolean = false,
     val build: () -> SP,
     val subPubs: Map<ScopeTo, SP> = mapOf(), // Do I really need this one here
 )
@@ -81,7 +105,7 @@ data class EventMiddleWareConfig(
 )
 
 data class EventConfig(
-    val event: E?, //Can be null as someone can scope to an event that has not been published yet
+    val event: E?, //Can be null as someone can listen to an event that has not been published yet
     val listeners: Set<SP> = setOf(),
 )
 
@@ -92,16 +116,16 @@ data class MiddleWareConfig(
 
 data class DependencyConfig(
     val build: (ScopeTo) -> D,
-    val dependencies: Map<ScopeTo, D> = mapOf(),
+    val dependencies: Map<ScopeTo, D> = mapOf(), // TODO this is currently broken, need a list of providers not explicit dependencies.
 )
 
 typealias SP = SubPub<out State>
 typealias SPClass = KClass<out SP>
 
-typealias MW = MiddleWare<out Event>
+typealias MW = MiddleWare<out ScopedEvent>
 
-typealias E = Event
-typealias EClass = KClass<out Event>
+typealias E = ScopedEvent
+typealias EClass = KClass<out ScopedEvent>
 
 typealias D = Dependency
 typealias DClass = KClass<out D>

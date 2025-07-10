@@ -18,7 +18,7 @@ abstract class SubPub<S : State>(
     private var scopes: List<Pair<ScopeTo, List<EClass>?>> = listOf(Pair(SingleScopeTo(), null)) // Change to
     val engine: Engine = Engine
     val events = requiredEvents + nonRequiredEvents
-    var lastEvent: E = Event.InitialEvent(uid)
+    var lastEvent: E = ScopedEvent.InitialEvent(uid)
     lateinit var state: MutableState<S>
     private val idempotentMap: MutableMap<EClass, MutableSet<String>> = mutableMapOf()
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default)
@@ -53,16 +53,16 @@ abstract class SubPub<S : State>(
         }
     }
 
-    fun getEvent(event: EClass): Event? =
+    fun getEvent(event: EClass): ScopedEvent? =
         getScopedEvent(event, scopes.last { it.first.mode == ScopeMode.Instance }.first)
 
-    fun <E : Event> getScopedEvents(event: KClass<out E>, scope: ScopeTo? = null): List<E> = scopes.filter { //Should probably be a set...
+    fun <E : ScopedEvent> getScopedEvents(event: KClass<out E>, scope: ScopeTo? = null): List<E> = scopes.filter { //Should probably be a set...
         (it.second?.contains(event) == true) && (scope == null || scope == it.first)
     }.mapNotNull {
         getScopedEvent(event, it.first)
     }
 
-    private fun <E : Event> getScopedEvent(event: KClass<out E>, scope: ScopeTo): E? =
+    private fun <E : ScopedEvent> getScopedEvent(event: KClass<out E>, scope: ScopeTo): E? =
         engine.getEvent(event, scope)
 
     private fun addScopeOrModify(scope: ScopeTo, events: List<EClass> = this.events.toList()) { //I think I need to somehow think it through, I don't understand what null is? All events? nah that is stupid should just default to all events
@@ -76,7 +76,7 @@ abstract class SubPub<S : State>(
         }
     }
 
-    fun <D : Dependency> getDependency(
+    fun <D : Dependency> getDependency( // TODO should make this inline
         dependency: KClass<out D>,
         scope: ScopeTo = defaultScope
     ): D = engine.getDependency(dependency, scope)
@@ -88,5 +88,123 @@ abstract class SubPub<S : State>(
             runIfNotReady()
         }
     } //Add a method that enables work to be done to mitigate this to get the subpub up and running
+
+    inline fun <reified E1: E>SubPub<S>.ge(func: (E1) -> Unit, nFunc: () -> Unit = {}){
+        getEvent(E1::class)?.also { func(it as E1) } ?: nFunc()
+    }
+
+    inline fun <reified E1: E>SubPub<S>.ges(func: (List<E>) -> Unit, nFunc: () -> Unit = {}, scopeTo: ScopeTo? = null){
+        getScopedEvents(E1::class, scopeTo).also {
+            if (it.isNotEmpty()) {
+                func(it)
+            } else {
+                nFunc()
+            }
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E>SubPub<S>.ge2(func: (E1?, E2?) -> Unit, nFunc: () -> Unit = {}){
+        val e1 = getEvent(E1::class)
+        val e2 = getEvent(E2::class)
+        if (e1 != null || e2 != null){
+            func(e1 as? E1, e2 as? E2)
+        } else {
+            nFunc()
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E>SubPub<S>.ges2(func: (List<E1>, List<E2>) -> Unit, nFunc: () -> Unit = {}, scopeTo: ScopeTo? = null){
+        val e1 = getScopedEvents(E1::class, scopeTo)
+        val e2 = getScopedEvents(E2::class, scopeTo)
+        if (e1.isNotEmpty() || e2.isNotEmpty()){
+            func(e1, e2)
+        } else {
+            nFunc()
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E>SubPub<S>.gae2(func: (E1, E2) -> Unit, nFunc: () -> Unit = {}){
+        val e1 = getEvent(E1::class)
+        val e2 = getEvent(E2::class)
+        if (e1 is E1 && e2 is E2){
+            func(e1, e2)
+        } else {
+            nFunc()
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E>SubPub<S>.gaes2(func: (List<E1>, List<E2>) -> Unit, nFunc: () -> Unit = {}, scopeTo: ScopeTo? = null){
+        val e1 = getScopedEvents(E1::class, scopeTo)
+        val e2 = getScopedEvents(E2::class, scopeTo)
+        if (e1.isNotEmpty() && e2.isNotEmpty()){
+            func(e1, e2)
+        } else {
+            nFunc()
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E, reified E3: E>SubPub<S>.ge3(func: (E1?, E2?, E3?) -> Unit, nFunc: () -> Unit = {}){
+        val e1 = getEvent(E1::class)
+        val e2 = getEvent(E2::class)
+        val e3 = getEvent(E2::class)
+        if (e1 != null || e2 != null || e3 != null){
+            func(e1 as? E1, e2 as? E2, e3 as? E3)
+        } else {
+            nFunc()
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E, reified E3: E>SubPub<S>.ges3(func: (List<E1>, List<E2>, List<E3>) -> Unit, nFunc: () -> Unit = {}, scopeTo: ScopeTo? = null){
+        val e1 = getScopedEvents(E1::class, scopeTo)
+        val e2 = getScopedEvents(E2::class, scopeTo)
+        val e3 = getScopedEvents(E3::class, scopeTo)
+        if (e1.isNotEmpty() || e2.isNotEmpty() || e3.isNotEmpty()){
+            func(e1, e2, e3)
+        } else {
+            nFunc()
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E, reified E3: E>SubPub<S>.gea3(func: (E1, E2, E3) -> Unit, nFunc: () -> Unit = {}){
+        val e1 = getEvent(E1::class)
+        val e2 = getEvent(E2::class)
+        val e3 = getEvent(E2::class)
+        if (e1 is E1 && e2 is E2 && e3 is E3){
+            func(e1, e2, e3)
+        } else {
+            nFunc()
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E, reified E3: E> SubPub<S>.geas3(func: (List<E1>, List<E2>, List<E3>) -> Unit, nFunc: () -> Unit = {}, scopeTo: ScopeTo? = null){
+        val e1 = getScopedEvents(E1::class, scopeTo)
+        val e2 = getScopedEvents(E2::class, scopeTo)
+        val e3 = getScopedEvents(E3::class, scopeTo)
+        if (e1.isNotEmpty() && e2.isNotEmpty() && e3.isNotEmpty()){
+            func(e1, e2, e3)
+        } else {
+            nFunc()
+        }
+    }
+
+    inline fun <reified E1: E> le(func: (E1) -> Unit){
+        val le = lastEvent
+        if (le is E1)  func(le)
+    }
+
+    inline fun <reified E1: E, reified E2: E> le2(func: (E1?, E2?) -> Unit){
+        when(val le = lastEvent) {
+            is E1 -> func(le, null)
+            is E2 -> func(null, le)
+        }
+    }
+
+    inline fun <reified E1: E, reified E2: E, reified E3: E> le3(func: (E1?, E2?, E3?) -> Unit){
+        when (val le = lastEvent) {
+            is E1 -> func(le, null, null)
+            is E2 -> func(null, le, null)
+            is E3 -> func(null, null, le)
+        }
+    }
 }
 

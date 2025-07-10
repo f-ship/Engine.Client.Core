@@ -98,20 +98,20 @@ inline fun <reified E1: E, reified E2: E, reified E3: E, S: State> SubPub<S>.gea
     }
 }
 
-inline fun <reified E1: E, S: State>SubPub<S>.ge(func: (E) -> Unit){
+inline fun <reified E1: E, S: State>SubPub<S>.le(func: (E) -> Unit){
     if (lastEvent is E1) {
         func(lastEvent)
     }
 }
 
-inline fun <reified E1: E, reified E2: E, S: State>SubPub<S>.ge2(func: (E1?, E2?) -> Unit){
+inline fun <reified E1: E, reified E2: E, S: State>SubPub<S>.le2(func: (E1?, E2?) -> Unit){
     when(val le = lastEvent) {
         is E1 -> func(le, null)
         is E2 -> func(null, le)
     }
 }
 
-inline fun <reified E1: E, reified E2: E, reified E3: E, S: State>SubPub<S>.ge3(func: (E1?, E2?, E3?) -> Unit){
+inline fun <reified E1: E, reified E2: E, reified E3: E, S: State>SubPub<S>.le3(func: (E1?, E2?, E3?) -> Unit){
     when (val le = lastEvent) {
         is E1 -> func(le, null, null)
         is E2 -> func(null, le, null)

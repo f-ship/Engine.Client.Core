@@ -1,10 +1,10 @@
 package ship.f.engine.client.core
 
 @Suppress("UNCHECKED_CAST")
-abstract class MiddleWare<E : Event> {
+abstract class MiddleWare<E : ScopedEvent> {
 
     private var isInitialized = false
-    operator fun invoke(event: Event): E? = process(event as E)
+    operator fun invoke(event: ScopedEvent): E? = process(event as E)
 
     private fun init() {
 
