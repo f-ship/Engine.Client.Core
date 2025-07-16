@@ -9,21 +9,23 @@ class SDUISubPub : SubPub<SDUIState>(
     requiredEvents = setOf(),
     nonRequiredEvents = setOf(SDUIScreenConfigEvent::class, SDUIElementConfigEvent::class),
 ) {
+    override fun init() {
+        engine.addDependency(CommonClientDependency::class, CommonClientDependency())
+    }
+    override fun initState() = SDUIState()
     data class SDUIState(
         val screenConfig: ScreenConfig = ScreenConfig.empty, // Not sure if this is even needed, just needed to fill up state I guess
     ) : State()
 
-    override fun init() {
-        engine.addDependency(CommonClientDependency::class, CommonClientDependency())
-    }
 
-    override fun initState() = SDUIState()
 
     override suspend fun onEvent() {
 
         le<SDUIScreenConfigEvent>{
             getDependency(CommonClientDependency::class).client.navigate(it.screenConfig)
-            state.value = state.value.copy(screenConfig = it.screenConfig).apply { isReady = state.value.isReady } // TODO this is so very bad and janky!
+//            withContext(Dispatchers.Main) {
+                state.value = state.value.copy(screenConfig = it.screenConfig).apply { isReady = state.value.isReady } // TODO this is so very bad and janky!
+//            }
         }
 
         le<SDUIElementConfigEvent>{

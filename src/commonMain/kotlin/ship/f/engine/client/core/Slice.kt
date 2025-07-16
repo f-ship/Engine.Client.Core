@@ -16,13 +16,13 @@ abstract class Slice<S : State, SP : SubPub<S>>(
     abstract fun EntryPoint(state: MutableState<S>)
 
     @Composable
-    abstract fun NotReadyEntryPoint(state: MutableState<S>): @Composable () -> Unit //Probably not needed anymore as should be handled on the sub pub itself
+    abstract fun notReadyEntryPoint(state: MutableState<S>): @Composable () -> Unit //Probably not needed anymore as should be handled on the sub pub itself
 
     private val subPub: SP = engine.getSubPub(subPubClass, scope)
 
     private val publish = subPub::publish
 
-    fun publishOnce(event: E, reason: String) {
+    suspend fun publishOnce(event: E, reason: String) {
         publish(event, "", reason)
     }
 
@@ -36,7 +36,7 @@ abstract class Slice<S : State, SP : SubPub<S>>(
         if (state.value.isReady) {
             EntryPoint(state)
         } else {
-            NotReadyEntryPoint(state)()
+            notReadyEntryPoint(state)()
         }
     }
 }
