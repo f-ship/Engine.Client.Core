@@ -5,7 +5,7 @@ import ship.f.engine.shared.utils.serverdrivenui.ElementOperation
 import ship.f.engine.shared.utils.serverdrivenui.ScreenConfig
 
 data class SDUIScreenConfigEvent(
-    val screenConfig: ScreenConfig,
+    val screenConfig: List<ScreenConfig>,
 ) : Event()
 
 data class SDUIElementConfigEvent(
