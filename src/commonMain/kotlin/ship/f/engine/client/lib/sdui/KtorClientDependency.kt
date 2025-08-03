@@ -6,10 +6,15 @@ import io.ktor.client.statement.*
 import ship.f.engine.client.core.Dependency
 
 class KtorClientDependency : Dependency() {
-    private val client = HttpClient()
+    val client = HttpClient()
+    var config: DebugConfig = DebugConfig()
 
     suspend fun greeting(): String {
         val response = client.get("https://ktor.io/docs/")
         return response.bodyAsText()
     }
 }
+
+data class DebugConfig(
+    val isLogin: Boolean = false
+)

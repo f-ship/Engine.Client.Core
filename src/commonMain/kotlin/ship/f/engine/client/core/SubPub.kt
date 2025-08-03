@@ -19,13 +19,18 @@ abstract class SubPub<S : State>(
     var lastEvent: E = ScopedEvent.InitialEvent(uid)
     lateinit var state: MutableState<S>
     private val idempotentMap: MutableMap<EClass, MutableSet<String>> = mutableMapOf()
-    private val coroutineScope: CoroutineScope = engine.engineScope
+    protected val coroutineScope: CoroutineScope = engine.engineScope
 
     abstract fun initState(): S
     abstract suspend fun onEvent()
     private var isInitialized = false //Can probably remove
 
     open fun init() {
+
+    }
+
+    // Can safely run as much as needed as idempotent
+    open fun tempSafeInit() {
 
     }
 
@@ -36,6 +41,7 @@ abstract class SubPub<S : State>(
             state = mutableStateOf(initState().apply { isReady = checkIfReady() })
             isInitialized = true
         }
+        tempSafeInit()
     }
 
     suspend fun publish(
