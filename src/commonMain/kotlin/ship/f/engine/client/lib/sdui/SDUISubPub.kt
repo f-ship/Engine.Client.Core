@@ -4,6 +4,7 @@ import kotlinx.coroutines.launch
 import ship.f.engine.client.core.State
 import ship.f.engine.client.core.SubPub
 import ship.f.engine.client.lib.sdui.SDUISubPub.SDUIState
+import ship.f.engine.client.lib.web.OpenUrlEvent
 import ship.f.engine.shared.utils.serverdrivenui.ScreenConfig
 
 class SDUISubPub : SubPub<SDUIState>(
@@ -15,6 +16,11 @@ class SDUISubPub : SubPub<SDUIState>(
         client.emitConfig = { screenId, metaId, elements, metas ->
             coroutineScope.launch {
                 publish(SDUIRequestEvent(screenId, metaId, elements, metas))
+            }
+        }
+        client.emitWebAction = { url ->
+            coroutineScope.launch {
+                publish(OpenUrlEvent(action = url))
             }
         }
     }

@@ -1,3 +1,4 @@
+
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -8,6 +9,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeMultiplatform)
+    kotlin("plugin.serialization") version "1.9.21"
 }
 
 group = "ship.f.engine.client"
@@ -48,9 +50,17 @@ kotlin {
         commonMain.dependencies {
             // put your Multiplatform dependencies here
             implementation(compose.runtime)
+            implementation(compose.ui) // Only in use for opening up web pages
+            implementation(compose.foundation) // Only in use for opening up web pages
+            implementation(compose.material) // Only in use for opening web pages
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
             implementation("ship.f.engine.client.utils:serverdrivenui")
+            api("io.github.kevinnzou:compose-webview-multiplatform:2.0.2")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.0")
+            implementation("io.ktor:ktor-client-content-negotiation:3.0.0")
+            implementation("io.ktor:ktor-server-content-negotiation:3.0.0")
             implementation(libs.ktor.client.core)
         }
 
