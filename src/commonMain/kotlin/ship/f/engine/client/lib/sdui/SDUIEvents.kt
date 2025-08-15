@@ -8,6 +8,10 @@ import ship.f.engine.shared.utils.serverdrivenui.action.Meta
 import ship.f.engine.shared.utils.serverdrivenui.state.State
 
 data class SDUIScreenConfigEvent(
+    val screenConfig: ScreenConfig,
+) : Event()
+
+data class SDUIScreenStoreEvent(
     val screenConfigs: List<ScreenConfig>,
 ) : Event()
 

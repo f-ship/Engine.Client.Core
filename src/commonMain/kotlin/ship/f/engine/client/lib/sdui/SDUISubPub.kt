@@ -9,7 +9,7 @@ import ship.f.engine.shared.utils.serverdrivenui.ScreenConfig
 
 class SDUISubPub : SubPub<SDUIState>(
     requiredEvents = setOf(),
-    nonRequiredEvents = setOf(SDUIScreenConfigEvent::class, SDUIElementConfigEvent::class, SDUIMetaEvent::class, SDUIScreenReferenceEvent::class),
+    nonRequiredEvents = setOf(SDUIScreenConfigEvent::class, SDUIScreenStoreEvent::class, SDUIElementConfigEvent::class, SDUIMetaEvent::class, SDUIScreenReferenceEvent::class),
 ) {
     override fun tempSafeInit() {
         val client = getDependency(CommonClientDependency::class).client
@@ -33,14 +33,9 @@ class SDUISubPub : SubPub<SDUIState>(
     override suspend fun onEvent() {
         le<SDUIScreenConfigEvent> {
             val client = getDependency(CommonClientDependency::class).client
-            client.navigate(it.screenConfigs.first())
-            state.value = state.value.copy(screenConfig = it.screenConfigs.first())
+            client.navigate(it.screenConfig)
+            state.value = state.value.copy(screenConfig = it.screenConfig)
                 .apply { isReady = state.value.isReady } // TODO this is so very bad and janky, should at least hide it with a method!
-            if (it.screenConfigs.size > 1) {
-                it.screenConfigs.subList(1, it.screenConfigs.size).forEach { screenConfig ->
-                    client.store(screenConfig)
-                }
-            }
         }
 
         le<SDUIElementConfigEvent> {
@@ -55,6 +50,12 @@ class SDUISubPub : SubPub<SDUIState>(
 
         le<SDUIScreenReferenceEvent> {
             getDependency(CommonClientDependency::class).client.navigate(it.screenReferences.first()) // TODO screen references should surely not be a list
+        }
+
+        le<SDUIScreenStoreEvent> {
+            it.screenConfigs.forEach { screenConfig ->
+                getDependency(CommonClientDependency::class).client.store(screenConfig)
+            }
         }
     }
 }

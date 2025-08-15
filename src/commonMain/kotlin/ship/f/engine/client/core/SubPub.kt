@@ -21,8 +21,43 @@ abstract class SubPub<S : State>(
     private val idempotentMap: MutableMap<EClass, MutableSet<String>> = mutableMapOf()
     protected val coroutineScope: CoroutineScope = engine.engineScope
 
+    val linkedExpectations = mutableMapOf<Pair<EClass, String?>, LinkedExpectation>()
+
     abstract fun initState(): S
     abstract suspend fun onEvent()
+
+    // TODO really is another awful method right here, that being said this single handedly enables me to handle sync work
+    suspend fun executeEvent() {
+//        getEvent(lastEvent::class)?.let { lastEvent ->
+//            linkedExpectations.forEach { linkedExpectation ->
+//                val blockedEvents = mutableSetOf<EClass>()
+//                val allList = linkedExpectation.value.all
+//                val updatedAllList = allList.map {
+//                    blockedEvents.add(it.first.expectedEvent)
+//                    if (it.first.expectedEvent == lastEvent::class) Pair(it.first, true) else it
+//                }
+//                if (updatedAllList.all { it.second }) {
+//                    updatedAllList.forEach { expectation ->
+//                        val event = getEvent(expectation.first.expectedEvent)!!
+//                        expectation.first.on(event)
+//                        blockedEvents.remove(expectation.first.expectedEvent)
+//                    }
+//                    linkedExpectations.remove(linkedExpectation.key)
+//                }
+//
+//                val anyList = linkedExpectation.value.any
+//                for (any in anyList) {
+//                    if (any.expectedEvent == lastEvent::class && !blockedEvents.contains(any.expectedEvent)) {
+//                        any.on(lastEvent)
+//                        linkedExpectations.remove(linkedExpectation.key)
+//                        break
+//                    }
+//                }
+//            }
+//        }
+        onEvent()
+    }
+
     private var isInitialized = false //Can probably remove
 
     open fun init() {
@@ -48,11 +83,41 @@ abstract class SubPub<S : State>(
         event: E,
         key: String? = null,
         reason: String = "Please Give a Reason for readability"
-    ) {
+    ): Expectation {
         idempotentMap[event::class]?.contains(key) ?: let {
             idempotentMap.smartAdd(event::class, key)
             engine.publish(event, reason)
         }
+        return Expectation(emittedEvent = event, key = key, expectedEvent = null)
+    }
+
+    // Pair<EClass, String?> is only used to stop multiple of the same item being added.
+    // Ultimately, we will still iterate through the entire list
+
+    fun Expectation.onceAny(vararg expectationBuilders: ExpectationBuilder) {
+        if (linkedExpectations.contains(Pair(emittedEvent::class, key))) return
+        val any = mutableListOf<ExpectationBuilder>()
+        expectationBuilders.forEach {
+            any.add(it)
+        }
+        val linkedExpectation = LinkedExpectation(
+            any = any,
+            all = listOf(),
+        )
+        linkedExpectations[Pair(emittedEvent::class, key)] = linkedExpectation
+    }
+
+    fun Expectation.onceAll(vararg expectationBuilders: ExpectationBuilder) {
+        if (linkedExpectations.contains(Pair(emittedEvent::class, key))) return
+        val all = mutableListOf<Pair<ExpectationBuilder, Boolean>>()
+        expectationBuilders.forEach {
+            all.add(Pair(it, false))
+        }
+        val linkedExpectation = LinkedExpectation(
+            any = listOf(),
+            all = all,
+        )
+        linkedExpectations[Pair(emittedEvent::class, key)] = linkedExpectation
     }
 
     fun getEvent(event: EClass): ScopedEvent? =
@@ -244,4 +309,3 @@ abstract class SubPub<S : State>(
         }
     }
 }
-

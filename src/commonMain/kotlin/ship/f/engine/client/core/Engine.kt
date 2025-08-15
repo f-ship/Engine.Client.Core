@@ -44,7 +44,7 @@ object Engine {
             eventConfigs[scope] = eventConfigs[scope]?.copy(event = computedEvent) ?: EventConfig(computedEvent, setOf())
             eventConfigs[scope]!!.listeners.forEach {
                 it.lastEvent = computedEvent
-                it.onEvent()
+                it.executeEvent()
             }
         }
     }

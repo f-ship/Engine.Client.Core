@@ -6,10 +6,11 @@ import kotlin.reflect.KClass
 
 val defaultScope = SingleScopeTo()
 
-fun ScopeTo.with(value: String = "") = when(this) {
+fun ScopeTo.with(value: String = "") = when (this) {
     is CompositeScopeTo -> copy(value = value)
     is SingleScopeTo -> copy(value = value)
 }
+
 annotation class SingleScope(val scope: KClass<out SingleScopeType> = DefaultSingleScope::class)
 annotation class CompositeScope(val scope: KClass<out CompositeScopeType> = DefaultCompositeScope::class)
 abstract class ScopeType
@@ -25,6 +26,7 @@ sealed class ScopeMode {
     data object Dynamic : ScopeMode()
     data object Instance : ScopeMode()
 }
+
 sealed class ScopeTo {
     abstract val value: String
     abstract val scope: KClass<out ScopeType>
@@ -42,6 +44,23 @@ sealed class ScopeTo {
         override val mode: ScopeMode = ScopeMode.Dynamic,
     ) : ScopeTo()
 }
+
+data class Expectation(
+    val emittedEvent: ScopedEvent,
+    val key: String?,
+    val expectedEvent: EClass?,
+)
+
+data class ExpectationBuilder(
+    val expectedEvent: EClass,
+    val on: (ScopedEvent) -> Expectation,
+)
+
+data class LinkedExpectation(
+    val any: List<ExpectationBuilder>,
+    val all: List<Pair<ExpectationBuilder, Boolean>>,
+)
+
 
 //First step is always to register the relevant scope
 //Scopes can be temp, static, dynamic or instance
@@ -79,15 +98,15 @@ data class MockEvent(
 //There is the normal event access that will only return a single event based on the instance scope with the default being default
 //There is scoped event access that will give a list of events based on what ever scope criteria the block was using
 //Careful when adding instance scopes from within a subpub, as this can be prone to bugs
-    //Imagine a slice calls a subpub with a scope to Jenny, however that subpub a few seconds later adds a scope for John
-    //Then a few seconds later a slice calls for a subpub with a scope for Jenny, it will have to create a new subpub as the existing subpub is scoped to Jenny + John
-    //If this cycle repeats every few seconds then in a few minutes you will end up with loads of subpubs that are effectively the same.
-    //In the future there will developer debug tools put in place prevent you from accidentally doing this.
-    //Another issue with adding runtime instance scopes is that when using normal event access methods you could receive any one of the instance scoped events
-    //In some sense the order of events will determine which one will be displayed
-    //Scopes are very powerful but are also very dangerous
-    //NOTICE I might just change this implementation to you can only have one instance scope after all, it's most definitely not a good idea to have more than one.
-    //In documentation I can tell people to open up issues if that can't solve a problem without it
+//Imagine a slice calls a subpub with a scope to Jenny, however that subpub a few seconds later adds a scope for John
+//Then a few seconds later a slice calls for a subpub with a scope for Jenny, it will have to create a new subpub as the existing subpub is scoped to Jenny + John
+//If this cycle repeats every few seconds then in a few minutes you will end up with loads of subpubs that are effectively the same.
+//In the future there will developer debug tools put in place prevent you from accidentally doing this.
+//Another issue with adding runtime instance scopes is that when using normal event access methods you could receive any one of the instance scoped events
+//In some sense the order of events will determine which one will be displayed
+//Scopes are very powerful but are also very dangerous
+//NOTICE I might just change this implementation to you can only have one instance scope after all, it's most definitely not a good idea to have more than one.
+//In documentation I can tell people to open up issues if that can't solve a problem without it
 //When a slice requires a subpub it can specify a instance scope with only a few select events that should override the default scope
 //In other words subpubs are somewhat interesting in how they are semi hive mind and semi independent
 //When a event's scope has been overridden from default to a scope, it must then be handled by the proper event access that will accept that scope
