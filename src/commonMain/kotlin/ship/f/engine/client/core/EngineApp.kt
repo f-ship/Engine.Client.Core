@@ -1,28 +1,20 @@
 package ship.f.engine.client.core
 
-import androidx.compose.runtime.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import androidx.compose.runtime.Composable
+import ship.f.engine.client.core.Engine.init
+import ship.f.engine.client.utils.serverdrivenui2.ext.BlockingLaunchedEffect2
 
 @Composable
 fun EngineApp(
     config: Config = Config(),
-    initialEvent: ScopedEvent? = null,
+    initialEvents: List<ScopedEvent> = listOf(),
     content: @Composable () -> Unit,
 ) {
-    var hasBeenInit by remember { mutableStateOf(false) }
-
-    LaunchedEffect(config) {
-        if (!Engine.hasBeenInit) {
-            Engine.init(config, initialEvent)
-        }
-        withContext(Dispatchers.Main) {
-            hasBeenInit = Engine.hasBeenInit
-        }
-        initialEvent?.let { Engine.publish(it, "Initial Event") }
+    BlockingLaunchedEffect2 {
+        init(
+            config = config,
+            initialEvents = initialEvents,
+        )
     }
-
-    if (hasBeenInit) {
-        content()
-    }
+    content()
 }

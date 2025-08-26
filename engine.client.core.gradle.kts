@@ -49,6 +49,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // put your Multiplatform dependencies here
+            implementation(compose.components.resources)
             implementation(compose.runtime)
             implementation(compose.ui) // Only in use for opening up web pages
             implementation(compose.foundation) // Only in use for opening up web pages

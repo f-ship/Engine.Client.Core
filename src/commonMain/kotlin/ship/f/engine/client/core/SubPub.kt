@@ -18,6 +18,7 @@ abstract class SubPub<S : State>(
     val events = requiredEvents + nonRequiredEvents
     var lastEvent: E = ScopedEvent.InitialEvent(uid)
     lateinit var state: MutableState<S>
+    val isReady: MutableState<Boolean> = mutableStateOf(false)
     private val idempotentMap: MutableMap<EClass, MutableSet<String>> = mutableMapOf()
     protected val coroutineScope: CoroutineScope = engine.engineScope
 
@@ -28,44 +29,57 @@ abstract class SubPub<S : State>(
 
     // TODO really is another awful method right here, that being said this single handedly enables me to handle sync work
     suspend fun executeEvent() {
-//        getEvent(lastEvent::class)?.let { lastEvent ->
-//            linkedExpectations.forEach { linkedExpectation ->
-//                val blockedEvents = mutableSetOf<EClass>()
-//                val allList = linkedExpectation.value.all
-//                val updatedAllList = allList.map {
-//                    blockedEvents.add(it.first.expectedEvent)
-//                    if (it.first.expectedEvent == lastEvent::class) Pair(it.first, true) else it
-//                }
-//                if (updatedAllList.all { it.second }) {
-//                    updatedAllList.forEach { expectation ->
-//                        val event = getEvent(expectation.first.expectedEvent)!!
-//                        expectation.first.on(event)
-//                        blockedEvents.remove(expectation.first.expectedEvent)
-//                    }
-//                    linkedExpectations.remove(linkedExpectation.key)
-//                }
-//
-//                val anyList = linkedExpectation.value.any
-//                for (any in anyList) {
-//                    if (any.expectedEvent == lastEvent::class && !blockedEvents.contains(any.expectedEvent)) {
-//                        any.on(lastEvent)
-//                        linkedExpectations.remove(linkedExpectation.key)
-//                        break
-//                    }
-//                }
-//            }
-//        }
+        getEvent(lastEvent::class)?.let { lastEvent ->
+            val expectationsToRemove: MutableList<Pair<EClass, String?>> = mutableListOf()
+            linkedExpectations.forEach { linkedExpectation ->
+                val blockedEvents = mutableSetOf<EClass>()
+                val allList = linkedExpectation.value.all
+                val updatedAllList = allList.map {
+                    blockedEvents.add(it.first.expectedEvent)
+                    if (it.first.expectedEvent == lastEvent::class && it.first.runOnCheck(lastEvent)) {
+                        Pair(it.first, true)
+                    } else {
+                        it
+                    }
+                }
+                if (updatedAllList.all { it.second }) {
+                    updatedAllList.forEach { expectation ->
+                        val event = getEvent(expectation.first.expectedEvent)!!
+                        expectation.first.runOn(event)
+                        blockedEvents.remove(expectation.first.expectedEvent)
+                    }
+                    expectationsToRemove.add(linkedExpectation.key)
+                }
+
+                val anyList = linkedExpectation.value.any
+                for (any in anyList) {
+                    if (any.expectedEvent == lastEvent::class && !blockedEvents.contains(any.expectedEvent) && any.runOnCheck(lastEvent)) {
+                        any.runOn(lastEvent)
+                        expectationsToRemove.add(linkedExpectation.key)
+                        break
+                    }
+                }
+            }
+            expectationsToRemove.forEach { linkedExpectations.remove(it) } // TODO to avoid ConcurrentModificationException
+        }
+        println("pre onEvent")
         onEvent()
+        if (!isReady.value) isReady.value = checkIfReady()
     }
 
     private var isInitialized = false //Can probably remove
 
+    /**
+     * Cannot perform publications from this method as SubPub is not currently set up.
+     * In the next version of engine it will be better to add all these events to a cache and then trigger them after the subpub is ready.
+     * This will remove the need to have an init and postInit method which can be confusing to navigate.
+     */
     open fun init() {
 
     }
 
     // Can safely run as much as needed as idempotent
-    open fun tempSafeInit() {
+    open fun postInit() {
 
     }
 
@@ -73,30 +87,34 @@ abstract class SubPub<S : State>(
         if (!isInitialized) {
             init()
             println("SubPub $uid is initialized")
-            state = mutableStateOf(initState().apply { isReady = checkIfReady() })
+            state = mutableStateOf(initState())
             isInitialized = true
         }
-        tempSafeInit()
+        postInit()
+        isReady.value = checkIfReady()
     }
 
     suspend fun publish(
         event: E,
         key: String? = null,
-        reason: String = "Please Give a Reason for readability"
+        reason: String = "Please Give a Reason for readability",
+        expectationBuilder: Expectation.() -> Unit = { }
     ): Expectation {
+        val expectation = Expectation(emittedEvent = event, key = key, expectedEvent = null)
         idempotentMap[event::class]?.contains(key) ?: let {
             idempotentMap.smartAdd(event::class, key)
+            expectationBuilder(expectation)
             engine.publish(event, reason)
         }
-        return Expectation(emittedEvent = event, key = key, expectedEvent = null)
+        return expectation
     }
 
     // Pair<EClass, String?> is only used to stop multiple of the same item being added.
     // Ultimately, we will still iterate through the entire list
 
-    fun Expectation.onceAny(vararg expectationBuilders: ExpectationBuilder) {
+    fun Expectation.onceAny(vararg expectationBuilders: ExpectationBuilder<out ScopedEvent>) {
         if (linkedExpectations.contains(Pair(emittedEvent::class, key))) return
-        val any = mutableListOf<ExpectationBuilder>()
+        val any = mutableListOf<ExpectationBuilder<out ScopedEvent>>()
         expectationBuilders.forEach {
             any.add(it)
         }
@@ -107,9 +125,9 @@ abstract class SubPub<S : State>(
         linkedExpectations[Pair(emittedEvent::class, key)] = linkedExpectation
     }
 
-    fun Expectation.onceAll(vararg expectationBuilders: ExpectationBuilder) {
+    fun Expectation.onceAll(vararg expectationBuilders: ExpectationBuilder<out ScopedEvent>) {
         if (linkedExpectations.contains(Pair(emittedEvent::class, key))) return
-        val all = mutableListOf<Pair<ExpectationBuilder, Boolean>>()
+        val all = mutableListOf<Pair<ExpectationBuilder<out ScopedEvent>, Boolean>>()
         expectationBuilders.forEach {
             all.add(Pair(it, false))
         }
@@ -121,7 +139,7 @@ abstract class SubPub<S : State>(
     }
 
     fun getEvent(event: EClass): ScopedEvent? =
-        getScopedEvent(event, scopes.last { it.first.mode == ScopeMode.Instance }.first)
+        getScopedEvent(event, scopes.lastOrNull { it.first.mode == ScopeMode.Instance }?.first ?: defaultScope)
 
     fun <E : ScopedEvent> getScopedEvents(event: KClass<out E>, scope: ScopeTo? = null): List<E> =
         scopes.filter { //Should probably be a set...
@@ -165,7 +183,7 @@ abstract class SubPub<S : State>(
         }
     } //Add a method that enables work to be done to mitigate this to get the subpub up and running
 
-    inline fun <reified E1 : E> SubPub<S>.ge(func: (E1) -> Unit, nFunc: () -> Unit = {}) {
+    inline fun <reified E1 : E> SubPub<S>.ge(nFunc: () -> Unit = {}, func: (E1) -> Unit) {
         getEvent(E1::class)?.also { func(it as E1) } ?: nFunc()
     }
 
@@ -183,7 +201,7 @@ abstract class SubPub<S : State>(
         }
     }
 
-    inline fun <reified E1 : E, reified E2 : E> SubPub<S>.ge2(func: (E1?, E2?) -> Unit, nFunc: () -> Unit = {}) {
+    inline fun <reified E1 : E, reified E2 : E> SubPub<S>.ge2(nFunc: () -> Unit = {}, func: (E1?, E2?) -> Unit) {
         val e1 = getEvent(E1::class)
         val e2 = getEvent(E2::class)
         if (e1 != null || e2 != null) {
@@ -194,9 +212,9 @@ abstract class SubPub<S : State>(
     }
 
     inline fun <reified E1 : E, reified E2 : E> SubPub<S>.ges2(
-        func: (List<E1>, List<E2>) -> Unit,
         nFunc: () -> Unit = {},
-        scopeTo: ScopeTo? = null
+        scopeTo: ScopeTo? = null,
+        func: (List<E1>, List<E2>) -> Unit,
     ) {
         val e1 = getScopedEvents(E1::class, scopeTo)
         val e2 = getScopedEvents(E2::class, scopeTo)
@@ -207,7 +225,10 @@ abstract class SubPub<S : State>(
         }
     }
 
-    inline fun <reified E1 : E, reified E2 : E> SubPub<S>.gae2(func: (E1, E2) -> Unit, nFunc: () -> Unit = {}) {
+    inline fun <reified E1 : E, reified E2 : E> SubPub<S>.gae2(
+        nFunc: () -> Unit = {},
+        func: (E1, E2) -> Unit,
+    ) {
         val e1 = getEvent(E1::class)
         val e2 = getEvent(E2::class)
         if (e1 is E1 && e2 is E2) {
@@ -218,9 +239,9 @@ abstract class SubPub<S : State>(
     }
 
     inline fun <reified E1 : E, reified E2 : E> SubPub<S>.gaes2(
-        func: (List<E1>, List<E2>) -> Unit,
         nFunc: () -> Unit = {},
-        scopeTo: ScopeTo? = null
+        scopeTo: ScopeTo? = null,
+        func: (List<E1>, List<E2>) -> Unit,
     ) {
         val e1 = getScopedEvents(E1::class, scopeTo)
         val e2 = getScopedEvents(E2::class, scopeTo)
@@ -232,8 +253,8 @@ abstract class SubPub<S : State>(
     }
 
     inline fun <reified E1 : E, reified E2 : E, reified E3 : E> SubPub<S>.ge3(
+        nFunc: () -> Unit = {},
         func: (E1?, E2?, E3?) -> Unit,
-        nFunc: () -> Unit = {}
     ) {
         val e1 = getEvent(E1::class)
         val e2 = getEvent(E2::class)
@@ -246,9 +267,9 @@ abstract class SubPub<S : State>(
     }
 
     inline fun <reified E1 : E, reified E2 : E, reified E3 : E> SubPub<S>.ges3(
-        func: (List<E1>, List<E2>, List<E3>) -> Unit,
         nFunc: () -> Unit = {},
-        scopeTo: ScopeTo? = null
+        scopeTo: ScopeTo? = null,
+        func: (List<E1>, List<E2>, List<E3>) -> Unit,
     ) {
         val e1 = getScopedEvents(E1::class, scopeTo)
         val e2 = getScopedEvents(E2::class, scopeTo)
@@ -261,8 +282,8 @@ abstract class SubPub<S : State>(
     }
 
     inline fun <reified E1 : E, reified E2 : E, reified E3 : E> SubPub<S>.gea3(
+        nFunc: () -> Unit = {},
         func: (E1, E2, E3) -> Unit,
-        nFunc: () -> Unit = {}
     ) {
         val e1 = getEvent(E1::class)
         val e2 = getEvent(E2::class)
@@ -275,9 +296,9 @@ abstract class SubPub<S : State>(
     }
 
     inline fun <reified E1 : E, reified E2 : E, reified E3 : E> SubPub<S>.geas3(
-        func: (List<E1>, List<E2>, List<E3>) -> Unit,
         nFunc: () -> Unit = {},
-        scopeTo: ScopeTo? = null
+        scopeTo: ScopeTo? = null,
+        func: (List<E1>, List<E2>, List<E3>) -> Unit,
     ) {
         val e1 = getScopedEvents(E1::class, scopeTo)
         val e2 = getScopedEvents(E2::class, scopeTo)

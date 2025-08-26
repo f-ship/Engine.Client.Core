@@ -23,17 +23,23 @@ abstract class Slice<S : State, SP : SubPub<S>>(
     private val publish = subPub::publish
 
     suspend fun publishOnce(event: E, reason: String) {
-        publish(event, "", reason)
+        publish(event, "", reason, {})
     }
 
     @Composable
     fun Show() {
-        EntryPointWrapper(subPub.state)
+        EntryPointWrapper(
+            state = subPub.state,
+            isReady = subPub.isReady,
+        )
     }
 
     @Composable
-    private fun EntryPointWrapper(state: MutableState<S>) {
-        if (state.value.isReady) {
+    private fun EntryPointWrapper(
+        state: MutableState<S>,
+        isReady: MutableState<Boolean>,
+    ) {
+        if (isReady.value) {
             EntryPoint(state)
         } else {
             notReadyEntryPoint(state)()

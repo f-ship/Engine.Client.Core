@@ -47,18 +47,23 @@ sealed class ScopeTo {
 
 data class Expectation(
     val emittedEvent: ScopedEvent,
-    val key: String?,
-    val expectedEvent: EClass?,
+    val key: String? = null,
+    val expectedEvent: EClass? = null,
 )
 
-data class ExpectationBuilder(
-    val expectedEvent: EClass,
-    val on: (ScopedEvent) -> Expectation,
-)
+@Suppress("UNCHECKED_CAST")
+data class ExpectationBuilder<T : ScopedEvent>(
+    val expectedEvent: KClass<T>,
+    val on: T.() -> Unit,
+    val onCheck: T.() -> Boolean = { true },
+) {
+    fun runOn(event: ScopedEvent) = on(event as T)
+    fun runOnCheck(event: ScopedEvent) = onCheck(event as T)
+}
 
 data class LinkedExpectation(
-    val any: List<ExpectationBuilder>,
-    val all: List<Pair<ExpectationBuilder, Boolean>>,
+    val any: List<ExpectationBuilder<out ScopedEvent>>,
+    val all: List<Pair<ExpectationBuilder<out ScopedEvent>, Boolean>>,
 )
 
 

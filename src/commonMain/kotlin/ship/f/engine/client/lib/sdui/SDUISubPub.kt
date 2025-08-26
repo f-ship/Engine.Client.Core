@@ -1,6 +1,7 @@
 package ship.f.engine.client.lib.sdui
 
 import kotlinx.coroutines.launch
+import ship.f.engine.client.core.ExpectationBuilder
 import ship.f.engine.client.core.State
 import ship.f.engine.client.core.SubPub
 import ship.f.engine.client.lib.sdui.SDUISubPub.SDUIState
@@ -9,13 +10,26 @@ import ship.f.engine.shared.utils.serverdrivenui.ScreenConfig
 
 class SDUISubPub : SubPub<SDUIState>(
     requiredEvents = setOf(),
-    nonRequiredEvents = setOf(SDUIScreenConfigEvent::class, SDUIScreenStoreEvent::class, SDUIElementConfigEvent::class, SDUIMetaEvent::class, SDUIScreenReferenceEvent::class),
+    nonRequiredEvents = setOf(
+        SDUIScreenConfigEvent::class,
+        SDUIScreenStoreEvent::class,
+        SDUIElementConfigEvent::class,
+        SDUIMetaEvent::class,
+        SDUIScreenReferenceEvent::class
+    ),
 ) {
-    override fun tempSafeInit() {
+    override fun postInit() {
         val client = getDependency(CommonClientDependency::class).client
-        client.emitConfig = { screenId, metaId, elements, metas ->
+        client.emitConfig = { screenId, metaId, elements, metas, expected ->
             coroutineScope.launch {
-                publish(SDUIRequestEvent(screenId, metaId, elements, metas))
+                publish(SDUIRequestEvent(screenId, metaId, elements, metas, expected)) // TODO add list of expect IDs
+                    .onceAny( // TODO to make this an inline function
+                        ExpectationBuilder(
+                            expectedEvent = SDUIScreenConfigEvent::class,
+                            on = { /* TODO() Implement */ },
+                            onCheck = { expected.contains(screenConfig.id) },
+                        )
+                    )
             }
         }
         client.emitWebAction = { url ->
@@ -34,8 +48,6 @@ class SDUISubPub : SubPub<SDUIState>(
         le<SDUIScreenConfigEvent> {
             val client = getDependency(CommonClientDependency::class).client
             client.navigate(it.screenConfig)
-            state.value = state.value.copy(screenConfig = it.screenConfig)
-                .apply { isReady = state.value.isReady } // TODO this is so very bad and janky, should at least hide it with a method!
         }
 
         le<SDUIElementConfigEvent> {

@@ -16,7 +16,7 @@ class WebSubPub : SubPub<WebState>(
 
     override suspend fun onEvent() {
         le<OpenUrlEvent> {
-            state.value = state.value.copy(url = it.action).apply { isReady = state.value.isReady }
+            state.value = state.value.copy(url = it.action)
         }
     }
 }

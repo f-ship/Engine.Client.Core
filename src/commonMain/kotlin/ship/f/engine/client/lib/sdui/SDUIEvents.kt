@@ -32,4 +32,5 @@ data class SDUIRequestEvent(
     val metaId: MetaId,
     val elements: List<Element<out State>>,
     val metas: List<Meta>,
+    val expected: List<ID> = listOf(),
 ) : Event()

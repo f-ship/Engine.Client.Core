@@ -2,6 +2,7 @@ package ship.f.engine.client.core
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST") //Should probably create extensions for safe map access
@@ -20,7 +21,7 @@ object Engine {
         return c as? E
     }
 
-    suspend fun init(config: Config, initialEvent: E? = null) {
+    fun init(config: Config, initialEvents: List<E> = listOf()) {
         this.config = config
         config.subPubConfig.values
             .filter { it.isStartUp }
@@ -29,7 +30,9 @@ object Engine {
                     sp -> sp.tryInit()
                 }
             }
-        hasBeenInit = true
+        engineScope.launch {
+            initialEvents.forEach { publish(it, "Initial Event") }
+        }
     }
 
     suspend fun publish(event: E, reason: String) { // Do something with reason
@@ -38,10 +41,11 @@ object Engine {
         middleWares.forEach { middleWare ->
             computedEvent = middleWare(computedEvent) ?: computedEvent
         }
-
+        println("Mid Publish")
         (computedEvent.getScopes() + listOf(defaultScope)).forEach { scope ->
             val eventConfigs = config.eventMiddleWareConfig[computedEvent::class]!!.eventConfigs
             eventConfigs[scope] = eventConfigs[scope]?.copy(event = computedEvent) ?: EventConfig(computedEvent, setOf())
+            println("Pre listeners")
             eventConfigs[scope]!!.listeners.forEach {
                 it.lastEvent = computedEvent
                 it.executeEvent()
