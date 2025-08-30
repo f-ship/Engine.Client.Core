@@ -62,7 +62,6 @@ abstract class SubPub<S : State>(
             }
             expectationsToRemove.forEach { linkedExpectations.remove(it) } // TODO to avoid ConcurrentModificationException
         }
-        println("pre onEvent")
         onEvent()
         if (!isReady.value) isReady.value = checkIfReady()
     }

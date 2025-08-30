@@ -41,11 +41,10 @@ object Engine {
         middleWares.forEach { middleWare ->
             computedEvent = middleWare(computedEvent) ?: computedEvent
         }
-        println("Mid Publish")
+
         (computedEvent.getScopes() + listOf(defaultScope)).forEach { scope ->
             val eventConfigs = config.eventMiddleWareConfig[computedEvent::class]!!.eventConfigs
             eventConfigs[scope] = eventConfigs[scope]?.copy(event = computedEvent) ?: EventConfig(computedEvent, setOf())
-            println("Pre listeners")
             eventConfigs[scope]!!.listeners.forEach {
                 it.lastEvent = computedEvent
                 it.executeEvent()

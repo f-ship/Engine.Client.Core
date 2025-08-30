@@ -6,6 +6,7 @@ import ship.f.engine.client.core.Event
 import ship.f.engine.shared.utils.serverdrivenui2.config.meta.models.Meta2
 import ship.f.engine.shared.utils.serverdrivenui2.config.meta.models.PopulatedSideEffectMeta2
 import ship.f.engine.shared.utils.serverdrivenui2.config.state.models.Id2.MetaId2
+import ship.f.engine.shared.utils.serverdrivenui2.config.state.models.Id2.StateId2
 import ship.f.engine.shared.utils.serverdrivenui2.state.State2
 
 // Events Accepted by SDUISubPub2
@@ -13,6 +14,13 @@ import ship.f.engine.shared.utils.serverdrivenui2.state.State2
 data class SDUIInput2(
     val id: MetaId2 = MetaId2.none,
     val states: List<State2> = listOf(),
+    val metas: List<Meta2> = listOf(),
+) : Event()
+
+@Serializable
+data class SDUIReactiveInput2(
+    val id: MetaId2 = MetaId2.none,
+    val states: List<StateId2> = listOf(),
     val metas: List<Meta2> = listOf(),
 ) : Event()
 
