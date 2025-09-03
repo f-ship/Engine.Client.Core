@@ -29,13 +29,13 @@ class SDUISubPub2 : SubPub<SDUIState2>(
                             onCheck = {
                                 populatedSideEffect.onExpected.contains(id) ||
                                         states.any { state -> populatedSideEffect.onExpected.contains(state.id) } ||
-                                        metas.any { meta -> populatedSideEffect.onExpected.contains(meta.id) }
+                                        metas.any { meta -> populatedSideEffect.onExpected.contains(meta.metaId) }
                             },
                             on = {
                                 /* TODO this is not where the main event is handled, but where we can notify sdui a call is complete */
                                 val id = populatedSideEffect.onExpected[id]?.let { id }
                                     ?: states.firstOrNull { state -> populatedSideEffect.onExpected.contains(state.id) }?.id
-                                    ?: metas.first { meta -> populatedSideEffect.onExpected.contains(meta.id) }.id
+                                    ?: metas.first { meta -> populatedSideEffect.onExpected.contains(meta.metaId) }.metaId
 
                                 populatedSideEffect.onExpected[id]?.forEach {
                                     it.second.run(
