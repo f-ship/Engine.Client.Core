@@ -57,12 +57,14 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
             implementation("ship.f.engine.client.utils:serverdrivenui")
+            api("ship.f.engine.shared:core")
             api("io.github.kevinnzou:compose-webview-multiplatform:2.0.2")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.0")
             implementation("io.ktor:ktor-client-content-negotiation:3.0.0")
             implementation("io.ktor:ktor-server-content-negotiation:3.0.0")
             implementation(libs.ktor.client.core)
+            implementation("io.ktor:ktor-client-websockets:3.2.3")
         }
 
         androidMain.dependencies {

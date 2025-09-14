@@ -1,11 +1,11 @@
 package ship.f.engine.client.lib.sdui
 
 import kotlinx.coroutines.launch
-import ship.f.engine.client.core.ExpectationBuilder
-import ship.f.engine.client.core.State
 import ship.f.engine.client.core.SubPub
 import ship.f.engine.client.lib.sdui.SDUISubPub.SDUIState
 import ship.f.engine.client.lib.web.OpenUrlEvent
+import ship.f.engine.shared.core.ExpectationBuilder
+import ship.f.engine.shared.core.State
 import ship.f.engine.shared.utils.serverdrivenui.ScreenConfig
 
 class SDUISubPub : SubPub<SDUIState>(

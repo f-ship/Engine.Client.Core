@@ -2,6 +2,9 @@ package ship.f.engine.client.core
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import ship.f.engine.shared.core.ScopeTo
+import ship.f.engine.shared.core.State
+import ship.f.engine.shared.core.defaultScope
 import kotlin.reflect.KClass
 
 abstract class Slice<S : State, SP : SubPub<S>>(

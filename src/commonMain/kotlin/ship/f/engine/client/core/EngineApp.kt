@@ -3,6 +3,7 @@ package ship.f.engine.client.core
 import androidx.compose.runtime.Composable
 import ship.f.engine.client.core.Engine.init
 import ship.f.engine.client.utils.serverdrivenui2.ext.BlockingLaunchedEffect2
+import ship.f.engine.shared.core.ScopedEvent
 
 @Composable
 fun EngineApp(

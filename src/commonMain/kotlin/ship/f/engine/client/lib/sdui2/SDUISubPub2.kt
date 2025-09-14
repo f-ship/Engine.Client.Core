@@ -2,10 +2,13 @@ package ship.f.engine.client.lib.sdui2
 
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.Resource
-import ship.f.engine.client.core.ExpectationBuilder
-import ship.f.engine.client.core.State
 import ship.f.engine.client.core.SubPub
 import ship.f.engine.client.lib.sdui2.SDUISubPub2.SDUIState2
+import ship.f.engine.shared.core.ExpectationBuilder
+import ship.f.engine.shared.core.State
+import ship.f.engine.shared.sdui2.SDUIConfig2
+import ship.f.engine.shared.sdui2.SDUIInput2
+import ship.f.engine.shared.sdui2.SDUISideEffect2
 import ship.f.engine.shared.utils.serverdrivenui2.config.meta.models.NavigationConfig2
 
 class SDUISubPub2 : SubPub<SDUIState2>(

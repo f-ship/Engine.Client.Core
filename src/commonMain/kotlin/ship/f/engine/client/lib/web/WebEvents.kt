@@ -1,6 +1,6 @@
 package ship.f.engine.client.lib.web
 
-import ship.f.engine.client.core.Event
+import ship.f.engine.shared.core.Event
 import ship.f.engine.shared.utils.serverdrivenui.action.Action
 
 data class OpenUrlEvent(

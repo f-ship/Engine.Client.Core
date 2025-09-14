@@ -4,12 +4,15 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Clock
-import ship.f.engine.client.core.ScopeTo.SingleScopeTo
+import kotlinx.serialization.Serializable
+import ship.f.engine.shared.core.*
+import ship.f.engine.shared.core.ScopeTo.SingleScopeTo
 import kotlin.reflect.KClass
 
+@Serializable
 abstract class SubPub<S : State>(
     private val requiredEvents: Set<EClass> = setOf(),
-    nonRequiredEvents: Set<EClass> = setOf()
+    val nonRequiredEvents: Set<EClass> = setOf()
 ) {
     private val uid = "${this::class.simpleName}:${Clock.System.now()}"
 

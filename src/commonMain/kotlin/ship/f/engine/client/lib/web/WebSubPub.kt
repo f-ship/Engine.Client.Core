@@ -1,6 +1,6 @@
 package ship.f.engine.client.lib.web
 
-import ship.f.engine.client.core.State
+import ship.f.engine.shared.core.State
 import ship.f.engine.client.core.SubPub
 import ship.f.engine.client.lib.web.WebSubPub.WebState
 import ship.f.engine.shared.utils.serverdrivenui.action.Action

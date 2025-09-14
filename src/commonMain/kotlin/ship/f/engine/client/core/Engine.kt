@@ -3,9 +3,12 @@ package ship.f.engine.client.core
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import ship.f.engine.shared.core.*
 import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST") //Should probably create extensions for safe map access
+@Serializable
 object Engine {
     private var config = Config()
     var hasBeenInit = false
@@ -91,33 +94,39 @@ object Engine {
     }
 }
 
+@Serializable
 data class Config(
     val subPubConfig: Map<SPClass, SubPubConfig> = mapOf(),
     val eventMiddleWareConfig: Map<EClass, EventMiddleWareConfig> = mapOf(),
     val dependencyConfig: Map<DClass, DependencyConfig> = mapOf(), // TODO Should have a way to make arbitrary independence that don't implement Dependency
 )
 
+@Serializable
 data class SubPubConfig(
     val isStartUp: Boolean = false,
     val build: () -> SP,
     val subPubs: Map<ScopeTo, SP> = mapOf(), // Do I really need this one here
 )
 
+@Serializable
 data class EventMiddleWareConfig(
     val eventConfigs: MutableMap<ScopeTo, EventConfig> = mutableMapOf(),
     val middleWareConfigs: List<MiddleWareConfig> = listOf(), // For now Assume all middlewares are created at init
 )
 
+@Serializable
 data class EventConfig(
     val event: E?, //Can be null as someone can listen to an event that has not been published yet
     val listeners: Set<SP> = setOf(),
 )
 
+@Serializable
 data class MiddleWareConfig(
     val build: () -> MW,
     val listener: MW,
 )
 
+@Serializable
 data class DependencyConfig(
     val build: (ScopeTo) -> D,
     val dependencies: Map<ScopeTo, D> = mapOf(), // TODO this is currently broken, need a list of providers not explicit dependencies.

@@ -1,6 +1,6 @@
 package ship.f.engine.client.lib.sdui
 
-import ship.f.engine.client.core.Event
+import ship.f.engine.shared.core.Event
 import ship.f.engine.shared.utils.serverdrivenui.ElementOperation
 import ship.f.engine.shared.utils.serverdrivenui.ScreenConfig
 import ship.f.engine.shared.utils.serverdrivenui.ScreenConfig.*
