@@ -47,10 +47,6 @@ kotlin {
     }
     
     sourceSets {
-        val androidDev by creating {
-            dependsOn(commonMain.get())
-        }
-
         commonMain.dependencies {
             // put your Multiplatform dependencies here
             implementation(compose.components.resources)
@@ -66,7 +62,6 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.0")
             implementation("io.ktor:ktor-client-content-negotiation:3.0.0")
-            implementation("io.ktor:ktor-server-content-negotiation:3.0.0")
             implementation(libs.ktor.client.core)
             implementation("io.ktor:ktor-client-websockets:3.2.3")
         }
