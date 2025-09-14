@@ -47,6 +47,10 @@ kotlin {
     }
     
     sourceSets {
+        val androidDev by creating {
+            dependsOn(commonMain.get())
+        }
+
         commonMain.dependencies {
             // put your Multiplatform dependencies here
             implementation(compose.components.resources)
