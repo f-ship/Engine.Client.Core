@@ -10,6 +10,7 @@ import ship.f.engine.shared.core.ScopedEvent
 fun EngineApp(
     config: Config = Config(),
     initialEvents: List<ScopedEvent> = listOf(),
+//    platformContext: PlatformContext? = null,
     content: @Composable () -> Unit,
 ) {
     BlockingLaunchedEffect2 {
